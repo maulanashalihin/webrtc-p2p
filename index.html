@@ -293,6 +293,11 @@ const cleanRoom = s => (s || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(
 $('name').value = localStorage.getItem('ruang-name') || '';
 const startRoom = cleanRoom(location.hash.slice(1));
 $('room').value = startRoom || rnd();
+function syncHash() {
+  const r = cleanRoom($('room').value);
+  history.replaceState(null, '', r ? '#' + r : location.pathname);
+}
+$('room').addEventListener('input', syncHash);
 renderRecent();
 if (startRoom) toast('Tautan undangan ke room "' + startRoom + '". Isi nama, lalu lanjut.');
 
@@ -300,7 +305,7 @@ function renderRecent() {
   const box = $('recent'); box.innerHTML = '';
   for (const r of JSON.parse(localStorage.getItem('ruang-recent') || '[]')) {
     const c = document.createElement('span'); c.className = 'chip'; c.textContent = '#' + r;
-    c.onclick = () => $('room').value = r;
+    c.onclick = () => { $('room').value = r; syncHash(); };
     box.appendChild(c);
   }
 }
@@ -317,6 +322,7 @@ function startPrejoin(media) {
   myRoom = cleanRoom($('room').value) || rnd();
   if (!myRoom) { toast('Nama room hanya huruf, angka, dan strip.'); return; }
   rememberRoom(myRoom);
+  history.replaceState(null, '', '#' + myRoom);
   withMedia = media;
   $('prejoinSub').textContent = 'Room "' + myRoom + '" sebagai ' + myName + (media ? '' : ' (tanpa kamera).');
   $('prejoinMedia').style.display = media ? '' : 'none';

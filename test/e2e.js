@@ -22,6 +22,7 @@ const URL = process.env.E2E_URL || 'http://127.0.0.1:8090/';
     await p.goto(URL, { waitUntil: 'domcontentloaded' });
     await p.fill('#name', name);
     await p.fill('#room', room);
+    await p.waitForFunction((r) => location.hash === '#' + r, room, { timeout: 5000 });
     await p.click(cam ? '#btnCam' : '#btnChat');
     await p.waitForSelector('#screen-prejoin', { state: 'visible' });
     await p.click('#btnMasuk');
