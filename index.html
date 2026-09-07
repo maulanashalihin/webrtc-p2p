@@ -3,106 +3,133 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&display=swap">
 <title>Ruang — Video Call P2P</title>
 <style>
-  :root { --bg:#101014; --panel:#1a1a21; --line:#2c2c38; --txt:#f0f0f5; --dim:#9a9ab0; --acc:#5b8cff; --ok:#3ddc84; --warn:#ffb020; --bad:#ff5d5d; }
+  :root {
+    --bg:#0C0D10; --panel:#14151A; --panel2:#1B1D24; --line:#26272F;
+    --txt:#F4F5F7; --dim:#A8B0BE; --ink:#0C0D10;
+    --ok:#46C98A; --warn:#E5A13C; --bad:#E5484D; --focus:#9DB9FF;
+    --r:10px; --display:"Sora",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --body:system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
   * { box-sizing: border-box; }
-  body { font-family: system-ui, -apple-system, sans-serif; margin: 0; background: var(--bg); color: var(--txt); min-height: 100vh; }
-  .wrap { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; }
-  h1 { font-size: 28px; margin: 8px 0 4px; }
-  .sub { color: var(--dim); margin: 0 0 20px; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin: 14px 0; }
-  label { display: block; font-size: 13px; color: var(--dim); margin: 12px 0 4px; }
-  input, select { width: 100%; padding: 11px 13px; font-size: 16px; border-radius: 10px; border: 1px solid var(--line); background: #101016; color: var(--txt); font-family: inherit; }
-  button { font-family: inherit; font-size: 15px; padding: 11px 18px; border-radius: 10px; border: 1px solid var(--line); background: #262633; color: var(--txt); cursor: pointer; }
-  button.primary { background: var(--acc); border-color: var(--acc); color: #fff; font-weight: 600; }
-  button.danger { background: #3a1d1d; border-color: #6b2b2b; }
+  body { font-family: var(--body); font-size: 15px; line-height: 1.55; margin: 0; background: var(--bg); color: var(--txt); min-height: 100vh; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 32px 20px 48px; }
+  h1 { font-family: var(--display); font-size: 30px; line-height: 1.15; letter-spacing: -0.01em; margin: 0 0 8px; font-weight: 600; }
+  h2 { font-family: var(--display); font-size: 20px; line-height: 1.25; margin: 0 0 8px; font-weight: 600; }
+  .sub { color: var(--dim); margin: 0 0 24px; max-width: 60ch; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 24px; margin: 0 0 16px; }
+  label { display: block; font-size: 13px; color: var(--dim); margin: 16px 0 6px; }
+  label:first-child { margin-top: 0; }
+  input, select { width: 100%; padding: 12px 14px; font-size: 16px; border-radius: var(--r); border: 1px solid var(--line); background: var(--panel2); color: var(--txt); font-family: inherit; }
+  input:focus, select:focus, button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  button { font-family: inherit; font-size: 15px; padding: 12px 20px; border-radius: var(--r); border: 1px solid var(--line); background: var(--panel2); color: var(--txt); cursor: pointer; }
+  button.primary { background: var(--txt); border-color: var(--txt); color: var(--ink); font-weight: 600; }
+  button.ghost { background: transparent; }
+  button.danger { background: var(--bad); border-color: var(--bad); color: #fff; }
   button:disabled { opacity: .4; cursor: default; }
-  button.on { outline: 2px solid var(--acc); }
-  .row { display: flex; gap: 10px; margin: 12px 0; flex-wrap: wrap; }
+  .row { display: flex; gap: 12px; margin: 16px 0 0; flex-wrap: wrap; }
   .row > * { flex: 1 1 auto; }
-  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-  .chip { font-size: 13px; padding: 6px 12px; border-radius: 20px; background: #262633; border: 1px solid var(--line); cursor: pointer; }
-  #topbar { display: flex; align-items: center; gap: 10px; padding: 10px 0; flex-wrap: wrap; }
-  #topbar .room { font-weight: 700; font-size: 18px; }
-  #qdot { width: 11px; height: 11px; border-radius: 50%; background: #666; display: inline-block; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .chip { font-size: 13px; padding: 7px 14px; border-radius: 999px; background: transparent; border: 1px solid var(--line); color: var(--dim); cursor: pointer; }
+  .chip:hover { color: var(--txt); border-color: var(--dim); }
+  #topbar { display: flex; align-items: center; gap: 8px; padding: 12px 0 16px; flex-wrap: wrap; }
+  #topbar .room { font-family: var(--display); font-weight: 600; font-size: 17px; }
+  #qdot { width: 9px; height: 9px; border-radius: 50%; background: #555; display: inline-block; flex: none; }
   #qdot.ok { background: var(--ok); } #qdot.warn { background: var(--warn); } #qdot.bad { background: var(--bad); }
   #qtxt { font-size: 13px; color: var(--dim); }
+  #lockTag { font-size: 13px; color: var(--dim); }
   .spacer { flex: 1; }
-  .iconbtn { padding: 8px 12px; font-size: 14px; }
+  .iconbtn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 13px; font-size: 13px; }
+  .iconbtn svg { width: 16px; height: 16px; }
   #stage { position: relative; }
-  #tiles { display: flex; gap: 10px; }
+  #tiles { display: flex; gap: 12px; }
   #tiles.grid { display: grid; grid-template-columns: 1fr 1fr; }
-  .tile { position: relative; flex: 1; }
-  .tile video { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 14px; border: 1px solid var(--line); }
-  .vlabel { position: absolute; font-size: 12px; background: rgba(0,0,0,.6); padding: 3px 9px; border-radius: 8px; margin: 8px; left: 0; top: 0; }
-  #local { position: absolute; right: 12px; bottom: 12px; width: 22%; max-width: 200px; aspect-ratio: 4/3; background: #000; border-radius: 10px; border: 2px solid var(--line); }
-  #controls { display: flex; gap: 10px; justify-content: center; margin: 14px 0; flex-wrap: wrap; }
-  #controls button { min-width: 56px; font-size: 18px; }
-  #banner { display: none; padding: 10px 14px; border-radius: 10px; margin: 10px 0; font-size: 14px; }
+  .tile { position: relative; flex: 1; min-width: 0; }
+  .tile video { width: 100%; aspect-ratio: 16/9; max-height: 52vh; object-fit: contain; background: #000; border-radius: 12px; border: 1px solid var(--line); display: block; margin: 0 auto; }
+  .vlabel { position: absolute; font-size: 12px; line-height: 1.4; background: rgba(0,0,0,.65); padding: 4px 10px; border-radius: 999px; margin: 10px; left: 0; top: 0; }
+  #local { position: absolute; right: 12px; bottom: 12px; width: 22%; max-width: 200px; aspect-ratio: 4/3; background: #000; border-radius: 10px; border: 1px solid var(--line); transform: scaleX(-1); }
+  #controls { display: flex; gap: 10px; justify-content: center; margin: 18px 0; flex-wrap: wrap; }
+  #chatPanel .row > button { flex: none; }
+  #controls button { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 72px; padding: 10px 8px 8px; font-size: 11px; color: var(--dim); }
+  #controls button svg { width: 21px; height: 21px; }
+  #controls button.on { background: var(--txt); border-color: var(--txt); color: var(--ink); }
+  #controls button.leave { background: var(--bad); border-color: var(--bad); color: #fff; }
+  #banner { display: none; padding: 12px 16px; border-radius: var(--r); margin: 0 0 12px; font-size: 14px; border: 1px solid var(--line); }
   #banner.show { display: block; }
-  #banner.warn { background: #33270e; border: 1px solid #6b5116; }
-  #banner.bad { background: #381414; border: 1px solid #6b2b2b; }
-  #chatLog { height: 180px; overflow-y: auto; background: #0a0a0e; border: 1px solid var(--line); border-radius: 10px; padding: 10px; margin-bottom: 8px; }
-  #chatLog .m { margin: 6px 0; font-size: 14px; }
-  #chatLog .m b { color: var(--acc); }
-  #chatLog .m time { color: var(--dim); font-size: 11px; margin-left: 6px; }
-  #chatLog .sys { color: var(--dim); font-style: italic; font-size: 13px; }
-  #toasts { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 50; width: min(92vw, 420px); }
-  .toast { background: #262633; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-size: 14px; }
-  .statebox { text-align: center; padding: 40px 20px; }
-  .statebox .big { font-size: 44px; }
-  #preview { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 12px; }
-  #meter { height: 8px; background: #262633; border-radius: 5px; overflow: hidden; margin-top: 6px; }
+  #banner.warn { background: #1E1810; border-color: #4A3A1C; }
+  #banner.bad { background: #221214; border-color: #55262A; }
+  #chatLog { height: 200px; overflow-y: auto; background: #0A0B0D; border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; margin-bottom: 10px; }
+  #chatLog .m { margin: 8px 0; font-size: 14px; }
+  #chatLog .m b { font-weight: 600; }
+  #chatLog .m time { color: var(--dim); font-size: 11px; margin-left: 8px; font-weight: 400; }
+  #chatLog .sys { color: var(--dim); font-size: 13px; margin: 6px 0; }
+  #toasts { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 50; width: min(92vw, 420px); }
+  .toast { background: var(--panel2); border: 1px solid var(--line); border-radius: var(--r); padding: 11px 16px; font-size: 14px; animation: tin .18s ease-out; }
+  @keyframes tin { from { opacity: 0; transform: translateY(8px); } }
+  .statebox { text-align: center; padding: 56px 24px; }
+  .statebox svg.mark { width: 34px; height: 34px; color: var(--dim); margin-bottom: 16px; }
+  .statebox p { color: var(--dim); }
+  #preview { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 12px; transform: scaleX(-1); }
+  #meter { height: 6px; background: var(--panel2); border-radius: 999px; overflow: hidden; margin-top: 8px; }
   #meter > div { height: 100%; width: 0%; background: var(--ok); }
-  details { color: var(--dim); font-size: 14px; margin-top: 14px; }
-  a { color: var(--acc); }
+  details { color: var(--dim); font-size: 14px; margin-top: 20px; }
+  details p { max-width: 65ch; }
+  a { color: var(--txt); }
+  svg.ic { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   @media (max-width: 700px) {
+    .wrap { padding: 20px 16px 32px; }
     #tiles.grid { grid-template-columns: 1fr; }
-    #local { position: static; width: 100%; max-width: none; margin-top: 10px; }
-    #chatPanel { position: fixed; inset: auto 0 0 0; z-index: 40; background: var(--panel); border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; padding: 12px 14px 20px; transform: translateY(105%); transition: transform .25s; }
+    #local { position: static; width: 100%; max-width: none; margin-top: 12px; }
+    #chatPanel { position: fixed; inset: auto 0 0 0; z-index: 40; background: var(--panel); border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; padding: 14px 16px calc(20px + env(safe-area-inset-bottom)); transform: translateY(105%); transition: transform .22s ease-out; }
     #chatPanel.open { transform: none; }
     #chatLog { height: 30vh; }
-    #controls { position: sticky; bottom: 0; background: var(--bg); padding: 10px 0; }
+    #controls { position: sticky; bottom: 0; background: var(--bg); padding: 12px 0 calc(12px + env(safe-area-inset-bottom)); }
   }
+  #btnMuteMic .alt, #btnMuteCam .alt { display: none; }
+  #btnMuteMic.on .alt, #btnMuteCam.on .alt { display: inline; }
+  #btnMuteMic.on .main, #btnMuteCam.on .main { display: none; }
 </style>
 </head>
 <body>
 <div class="wrap">
 
   <div id="screen-lobby">
-    <h1>Ruang 👥</h1>
-    <p class="sub">Video call peer-to-peer hingga 4 orang: tanpa akun, tanpa server media.</p>
+    <h1>Ruang</h1>
+    <p class="sub">Panggilan video langsung antar browser. Maksimal empat orang, tanpa akun.</p>
     <div class="card">
-      <label>Nama kamu</label>
-      <input id="name" placeholder="mis. Budi" maxlength="24">
-      <label>Nama room (huruf, angka, strip)</label>
-      <input id="room" placeholder="mis. rapat-senin" maxlength="32">
+      <label for="name">Nama kamu</label>
+      <input id="name" placeholder="mis. Budi" maxlength="24" autocomplete="off">
+      <label for="room">Nama room (huruf, angka, strip)</label>
+      <input id="room" placeholder="mis. rapat-senin" maxlength="32" autocomplete="off">
       <div class="chips" id="recent"></div>
       <div class="row">
-        <button id="btnCam" class="primary">📹 Lanjut + kamera</button>
-        <button id="btnChat">💬 Chat saja</button>
+        <button id="btnCam" class="primary">Lanjut dengan kamera</button>
+        <button id="btnChat" class="ghost">Chat saja</button>
       </div>
     </div>
-    <details><summary>Cara kerja (30 detik)</summary>
-      <p>Server hanya memperkenalkan browser (tukar SDP + ICE). Setelah terhubung, video &amp; chat mengalir langsung antar browser (mesh), terenkripsi. <a href="/loopback.html">Mode belajar →</a></p>
+    <details><summary>Cara kerja</summary>
+      <p>Server hanya memperkenalkan browser. Selebihnya langsung dan terenkripsi. <a href="/loopback.html">Belajar WebRTC →</a></p>
     </details>
   </div>
 
   <div id="screen-prejoin" style="display:none">
-    <h1>Cek dulu 🎙️</h1>
+    <h1>Cek kamera dan mic</h1>
     <p class="sub" id="prejoinSub"></p>
     <div class="card" id="prejoinMedia">
       <video id="preview" autoplay muted playsinline></video>
-      <label>Kamera</label><select id="selCam"></select>
-      <label>Mic</label><select id="selMic"></select>
+      <label for="selCam">Kamera</label><select id="selCam"></select>
+      <label for="selMic">Mic</label><select id="selMic"></select>
       <div id="meter"><div></div></div>
-      <label>Speaker</label>
-      <div class="row"><select id="selSpk" style="flex:1"></select><button id="btnTestSpk" class="iconbtn">🔊 Tes</button></div>
+      <label for="selSpk">Speaker</label>
+      <div class="row"><select id="selSpk" style="flex:1"></select><button id="btnTestSpk" class="iconbtn ghost">Tes</button></div>
     </div>
     <div class="row">
-      <button id="btnBack">← Kembali</button>
-      <button id="btnMasuk" class="primary">Masuk room →</button>
+      <button id="btnBack" class="ghost">Kembali</button>
+      <button id="btnMasuk" class="primary">Masuk</button>
     </div>
   </div>
 
@@ -113,10 +140,10 @@
       <span id="qtxt">menghubungkan…</span>
       <span id="lockTag" style="font-size:13px"></span>
       <span class="spacer"></span>
-      <button id="btnInvite" class="iconbtn">🔗 Invite</button>
-      <button id="btnLock" class="iconbtn" style="display:none">🔒 Kunci</button>
-      <button id="btnDebug" class="iconbtn">📋</button>
-      <button id="btnLeave" class="iconbtn danger">⏹</button>
+      <button id="btnInvite" class="iconbtn ghost"><svg class="ic" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg><span>Undang</span></button>
+      <button id="btnLock" class="iconbtn ghost" style="display:none"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Kunci</span></button>
+      <button id="btnDebug" class="iconbtn ghost" title="Salin info debug" aria-label="Salin info debug"><svg class="ic" viewBox="0 0 24 24"><path d="M4 8h10M18 8h2M4 16h2M10 16h10"/><circle cx="16" cy="8" r="2"/><circle cx="8" cy="16" r="2"/></svg></button>
+      <button id="btnLeave" class="iconbtn danger" title="Keluar" aria-label="Keluar"><svg class="ic" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.13 1 .36 1.9.7 2.8a2 2 0 0 1-.45 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.45c.9.34 1.8.57 2.8.7a2 2 0 0 1 1.7 2Z"/></svg></button>
     </div>
     <div id="banner"></div>
     <div id="stage">
@@ -124,10 +151,10 @@
       <video id="local" autoplay muted playsinline></video>
     </div>
     <div id="controls">
-      <button id="btnMuteMic" title="Mic">🎤</button>
-      <button id="btnMuteCam" title="Kamera">📷</button>
-      <button id="btnShare" title="Share screen">🖥️</button>
-      <button id="btnChatToggle" title="Chat">💬</button>
+      <button id="btnMuteMic" aria-label="Bisukan mic"><svg class="ic main" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4"/></svg><svg class="ic alt" viewBox="0 0 24 24"><path d="M9 5a3 3 0 0 1 6 0v6a3 3 0 0 1-.4 1.4M15 11v1a7 7 0 0 1-11.6 5.3M12 18v4M4 4l16 16"/></svg><span>Mic</span></button>
+      <button id="btnMuteCam" aria-label="Matikan kamera"><svg class="ic main" viewBox="0 0 24 24"><rect x="2" y="6" width="13" height="12" rx="2"/><path d="M15 10.5 22 7v10l-7-3.5"/></svg><svg class="ic alt" viewBox="0 0 24 24"><path d="M10 6h5a2 2 0 0 1 2 2v3M15 10.5 22 7v10l-7-3.5M4 4l16 16"/></svg><span>Kamera</span></button>
+      <button id="btnShare" aria-label="Berbagi layar"><svg class="ic" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M12 8v5M9.7 10.3 12 8l2.3 2.3M8 21h8"/></svg><span>Layar</span></button>
+      <button id="btnChatToggle" aria-label="Buka tutup chat"><svg class="ic" viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.5L3 20l1-4.6A8.5 8.5 0 1 1 21 11.5Z"/></svg><span>Chat</span></button>
     </div>
     <div id="chatPanel">
       <div id="chatLog"></div>
@@ -140,7 +167,7 @@
 
   <div id="screen-full" style="display:none">
     <div class="card statebox">
-      <div class="big">🚪</div>
+      <svg class="ic mark" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M17.5 14.4a6.5 6.5 0 0 1 4 5.6"/></svg>
       <h2>Room penuh</h2>
       <p class="sub" id="fullText"></p>
       <button id="btnFullNew" class="primary">Buat room lain</button>
@@ -149,13 +176,13 @@
 
   <div id="screen-locked" style="display:none">
     <div class="card statebox">
-      <div class="big">🔒</div>
+      <svg class="ic mark" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
       <h2>Room dikunci</h2>
       <p class="sub">Minta PIN ke pembuat room.</p>
       <input id="pin" placeholder="PIN" maxlength="16" style="max-width:220px;margin:0 auto">
       <div class="row" style="justify-content:center">
-        <button id="btnPinBack">← Kembali</button>
-        <button id="btnPinJoin" class="primary">Gabung →</button>
+        <button id="btnPinBack" class="ghost">Kembali</button>
+        <button id="btnPinJoin" class="primary">Gabung</button>
       </div>
     </div>
   </div>
@@ -303,7 +330,7 @@ async function iceConfig() {
     if (!r.ok) throw 0;
     const { username, password, uris } = await r.json();
     cfg.iceServers.push({ urls: uris, username, credential: password });
-  } catch { sysChat('⚠️ TURN tak terjangkau — coba jalur langsung dulu.'); }
+  } catch { sysChat('TURN tak terjangkau — coba jalur langsung dulu.'); }
   return cfg;
 }
 
@@ -320,7 +347,7 @@ async function join(media, stream) {
       localStream = stream ?? await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       $('local').srcObject = localStream;
     } catch {
-      sysChat('⚠️ kamera/mic bermasalah — lanjut terima video.');
+      sysChat('Kamera/mic bermasalah — lanjut terima video.');
       localStream = null;
     }
   } else localStream = null;
@@ -421,12 +448,12 @@ function connectWS() {
         peers.set(p.id, p.name);
         ensureLink(p.id, p.name, false); // mereka yang akan menawarkan
       }
-      if (!peers.size) sysChat('Menunggu lawan di #' + myRoom + '… (kirim link invite!)');
+      if (!peers.size) sysChat('Menunggu lawan di #' + myRoom + '… (kirim tautan undangan).');
     }
     else if (m.t === 'peer-joined') {
       peers.set(m.peer.id, m.peer.name);
       const S = ensureLink(m.peer.id, m.peer.name, true); // kita menawarkan ke pendatang
-      sysChat(m.peer.name + ' masuk 👋'); toast(m.peer.name + ' masuk');
+      sysChat(m.peer.name + ' masuk.');
       await offerSync(S, m.peer.id);
     }
     else if (m.t === 'offer') {
@@ -465,9 +492,9 @@ function connectWS() {
     }
     else if (m.t === 'locked') { leaving = true; ws.close(); show('screen-locked'); $('pin').focus(); }
     else if (m.t === 'lock-state') {
-      $('lockTag').textContent = m.locked ? '🔒 terkunci' : '';
-      $('btnLock').textContent = m.locked ? '🔓 Buka' : '🔒 Kunci';
-      if (!initiator) sysChat(m.locked ? 'Room dikunci 🔒' : 'Room dibuka 🔓');
+      $('lockTag').textContent = m.locked ? 'Terkunci' : '';
+      $('btnLock').querySelector('span').textContent = m.locked ? 'Buka' : 'Kunci';
+      if (!initiator) sysChat(m.locked ? 'Room dikunci.' : 'Room dibuka.');
     }
     else if (m.t === 'rate-limited') toast('Terlalu sering join — tunggu sebentar.');
     else if (m.t === 'error') { toast('Room tidak valid.'); leaving = true; ws.close(); show('screen-lobby'); }
@@ -476,12 +503,12 @@ function connectWS() {
 
 function wireDC(S, ch) {
   S.dc = ch;
-  ch.onopen = () => { sysChat('✅ chat P2P dengan ' + S.name + ' siap'); for (const q of S.chatQ.splice(0)) ch.send(q); refreshChatBox(); };
+  ch.onopen = () => { for (const q of S.chatQ.splice(0)) ch.send(q); refreshChatBox(); };
   ch.onmessage = e => {
     let m; try { m = JSON.parse(e.data); } catch { return; }
     if (m.kind === 'chat') addChat(peers.get(m.id) || S.name, m.text);
     else if (m.kind === 'media') { S.mic = m.mic; S.cam = m.cam; paintLabel(S); }
-    else if (m.kind === 'share') toast('🖥️ ' + (peers.get(m.id) || S.name) + (m.on ? ' mulai' : ' berhenti') + ' share screen');
+    else if (m.kind === 'share') toast((peers.get(m.id) || S.name) + (m.on ? ' mulai berbagi layar.' : ' berhenti berbagi layar.'));
   };
   ch.onclose = () => refreshChatBox();
 }
@@ -500,7 +527,7 @@ function refreshChatBox() {
   $('msg').disabled = !any; $('btnSend').disabled = !any;
 }
 function paintLabel(S) {
-  S.label.textContent = S.name + (S.mic ? '' : ' 🔇') + (S.cam ? '' : ' 📷❌');
+  S.label.textContent = S.name + (S.mic ? '' : ' · bisu') + (S.cam ? '' : ' · kamera mati');
 }
 
 /* ---------- controls ---------- */
@@ -512,31 +539,29 @@ $('btnMuteMic').onclick = e => {
   const t = $('local').srcObject?.getAudioTracks()[0];
   if (!t) return toast('Tidak ada mic.');
   t.enabled = !t.enabled;
-  e.target.classList.toggle('on', !t.enabled);
-  e.target.textContent = t.enabled ? '🎤' : '🔇';
+  e.currentTarget.classList.toggle('on', !t.enabled);
   myMedia();
 };
 $('btnMuteCam').onclick = e => {
   const t = $('local').srcObject?.getVideoTracks()[0];
   if (!t) return toast('Tidak ada kamera.');
   t.enabled = !t.enabled;
-  e.target.classList.toggle('on', !t.enabled);
-  e.target.textContent = t.enabled ? '📷' : '📷❌';
+  e.currentTarget.classList.toggle('on', !t.enabled);
   myMedia();
 };
 $('btnShare').onclick = async e => {
   const senders = [];
   for (const [, S] of pcs) { const s = S.pc.getSenders().find(x => x.track?.kind === 'video'); if (s) senders.push(s); }
   if (!senders.length) return toast('Belum ada lawan / kamera.');
-  if (e.target.classList.contains('on')) { stopShare(); return; }
+  if (e.currentTarget.classList.contains('on')) { stopShare(); return; }
   try {
     const st = await navigator.mediaDevices.getDisplayMedia({ video: true });
     const track = st.getVideoTracks()[0];
     window._camTrack = senders[0].track;
     for (const s of senders) await s.replaceTrack(track);
-    e.target.classList.add('on');
+    e.currentTarget.classList.add('on');
     broadcast({ kind: 'share', on: true });
-    sysChat('🖥️ kamu share screen');
+    sysChat('Kamu berbagi layar.');
     track.onended = () => stopShare();
   } catch {}
 };
@@ -560,7 +585,7 @@ $('btnSend').onclick = () => {
 $('msg').onkeydown = e => { if (e.key === 'Enter') $('btnSend').click(); };
 $('btnInvite').onclick = async () => {
   const link = location.origin + location.pathname + '#' + myRoom;
-  try { await navigator.clipboard.writeText(link); toast('✅ Link invite tersalin!'); }
+  try { await navigator.clipboard.writeText(link); toast('Tautan undangan tersalin.'); }
   catch { prompt('Copy link ini:', link); }
 };
 $('btnLock').onclick = () => {
@@ -573,7 +598,7 @@ $('btnLock').onclick = () => {
 $('btnDebug').onclick = async () => {
   const info = [];
   for (const [id, S] of pcs) info.push({ peer: S.name, conn: S.pc.connectionState, ice: S.pc.iceConnectionState, sig: S.pc.signalingState });
-  try { await navigator.clipboard.writeText(JSON.stringify(info, null, 1)); toast('📋 info debug tersalin'); }
+  try { await navigator.clipboard.writeText(JSON.stringify(info, null, 1)); toast('Info debug tersalin.'); }
   catch { prompt('Copy info debug:', JSON.stringify(info)); }
 };
 $('btnLeave').onclick = () => {
