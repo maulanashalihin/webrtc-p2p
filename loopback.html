@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebRTC Dasar - Loopback 2 Peer</title>
+<style>
+  body { font-family: monospace; max-width: 800px; margin: 20px auto; padding: 0 16px; background: #111; color: #eee; }
+  button, input { font-family: inherit; padding: 8px 12px; margin: 4px 0; }
+  button { cursor: pointer; }
+  #log { background: #000; border: 1px solid #333; height: 300px; overflow-y: auto; padding: 10px; white-space: pre-wrap; font-size: 13px; }
+  .videos { display: flex; gap: 10px; }
+  video { width: 48%; background: #222; border: 1px solid #444; }
+  .ok { color: #4f4; } .warn { color: #ff4; } .err { color: #f66; }
+  #chat { border: 1px solid #333; padding: 10px; margin-top: 10px; }
+</style>
+</head>
+<body>
+<h1>WebRTC Dasar: 1 halaman, 2 peer (P1 &harr; P2)</h1>
+<p>Konsep: <b>signaling</b> (tukar SDP offer/answer + ICE) &rarr; koneksi <b>P2P</b> langsung. Di demo nyata signaling pakai WebSocket. Di sini kita "curang": tukar langsung via variabel, supaya fokus ke WebRTC-nya.</p>
+
+<button id="btnConnect">1️⃣ Hubungkan P1 ↔ P2</button>
+<button id="btnCall" disabled>2️⃣ Nyalakan Kamera (addTrack)</button>
+<button id="btnReset">Reset</button>
+<p>Status: <span id="status">belum terhubung</span></p>
+
+<div class="videos">
+  <video id="local" autoplay muted playsinline></video>
+  <video id="remote" autoplay playsinline></video>
+</div>
+
+<div id="chat">
+  <h3>DataChannel Chat (P1 → P2 → P1)</h3>
+  <input id="msg" placeholder="ketik pesan..." disabled>
+  <button id="btnSend" disabled>Kirim</button>
+  <div id="chatLog"></div>
+</div>
+
+<h3>Log signaling (baca dari atas ke bawah):</h3>
+<div id="log"></div>
+
+<script>
+const logEl = document.getElementById('log');
+const statusEl = document.getElementById('status');
+function log(m, cls='') {
+  const d = document.createElement('div');
+  if (cls) d.className = cls;
+  d.textContent = `[${new Date().toLocaleTimeString()}] ${m}`;
+  logEl.appendChild(d);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+let pc1, pc2, dc1, dc2;
+
+// ---- INTI DEMO: cuma ~30 baris WebRTC beneran ----
+async function connect() {
+  log('--- MULAI: bikin 2 RTCPeerConnection di 1 halaman ---');
+  // STUN gratis biar tau IP publik sendiri. Di localhost ga wajib, tapi ini yg dipakai internet beneran.
+  const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+  pc1 = new RTCPeerConnection(config); // "A"
+  pc2 = new RTCPeerConnection(config); // "B"
+
+  // 1. Saling tukar ICE candidate (jalur jaringan). Normalnya lewat server signaling.
+  pc1.onicecandidate = e => {
+    if (e.candidate) { log('P1 dapat ICE candidate: ' + e.candidate.candidate.slice(0,60) + '...'); pc2.addIceCandidate(e.candidate); }
+  };
+  pc2.onicecandidate = e => {
+    if (e.candidate) { log('P2 dapat ICE candidate: ' + e.candidate.candidate.slice(0,60) + '...'); pc1.addIceCandidate(e.candidate); }
+  };
+  pc1.onconnectionstatechange = () => { log('P1 state: ' + pc1.connectionState, pc1.connectionState==='connected'?'ok':''); checkReady(); };
+  pc2.onconnectionstatechange = () => { log('P2 state: ' + pc2.connectionState, pc2.connectionState==='connected'?'ok':''); checkReady(); };
+
+  // 2. DataChannel: pipa data P2P (chat/game/file), tanpa server.
+  dc1 = pc1.createDataChannel('chat');
+  dc1.onopen = () => { log('✅ DataChannel TERBUKA! chat siap.', 'ok'); document.getElementById('msg').disabled = false; document.getElementById('btnSend').disabled = false; };
+  dc1.onmessage = e => addChat('P2: ' + e.data);
+  pc2.ondatachannel = e => {
+    dc2 = e.channel;
+    dc2.onmessage = ev => addChat('P1: ' + ev.data);
+    dc2.onopen = () => log('P2: DataChannel terbuka', 'ok');
+  };
+
+  // 3. Terima video jauh
+  pc2.ontrack = e => {
+    log('📹 P2 terima track video dari P1!', 'ok');
+    document.getElementById('remote').srcObject = e.streams[0];
+  };
+
+  // 4. Jabat tangan SDP: offer → answer. INI "signaling" itu.
+  log('P1: createOffer()...');
+  const offer = await pc1.createOffer();
+  log('P1 offer (SDP, dipotong): ' + offer.sdp.slice(0,120).replace(/\r\n/g,' | ') + '...');
+  await pc1.setLocalDescription(offer);
+  await pc2.setRemoteDescription(offer);
+
+  log('P2: createAnswer()...');
+  const answer = await pc2.createAnswer();
+  log('P2 answer (SDP, dipotong): ' + answer.sdp.slice(0,120).replace(/\r\n/g,' | ') + '...');
+  await pc2.setLocalDescription(answer);
+  await pc1.setRemoteDescription(answer);
+  log('Signaling SELESAI. Tinggal tunggu ICE + DTLS handshake...', 'warn');
+
+  document.getElementById('btnCall').disabled = false;
+}
+
+function checkReady() {
+  if (pc1?.connectionState === 'connected' && pc2?.connectionState === 'connected') {
+    statusEl.textContent = '🟢 P2P CONNECTED (host-to-host, tanpa lewat server lagi)';
+  }
+}
+
+async function startCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    document.getElementById('local').srcObject = stream;
+    stream.getTracks().forEach(t => pc1.addTrack(t, stream));
+    log('📷 kamera lokal ditambah ke P1. Negosiasi ulang (renegotiation)...', 'warn');
+    // renegotiate: offer/answer lagi
+    const offer = await pc1.createOffer();
+    await pc1.setLocalDescription(offer);
+    await pc2.setRemoteDescription(offer);
+    const answer = await pc2.createAnswer();
+    await pc2.setLocalDescription(answer);
+    await pc1.setRemoteDescription(answer);
+    log('Renegotiation selesai, video harusnya muncul di kanan.', 'ok');
+  } catch (e) {
+    log('Gagal kamera (' + e.name + '): pakai pola animasi canvas sebagai gantinya. Klik halaman biar jalan.', 'err');
+    // Fallback tanpa kamera: track video buatan dari canvas
+    const c = document.createElement('canvas'); c.width = 320; c.height = 240;
+    const ctx = c.getContext('2d'); let x = 0;
+    setInterval(() => { ctx.fillStyle = '#222'; ctx.fillRect(0,0,320,240); ctx.fillStyle = '#0f0'; ctx.fillRect(x,100,40,40); x = (x+5)%320; }, 50);
+    const stream = c.captureStream(15);
+    document.getElementById('local').srcObject = stream;
+    stream.getTracks().forEach(t => pc1.addTrack(t, stream));
+    const offer = await pc1.createOffer();
+    await pc1.setLocalDescription(offer);
+    await pc2.setRemoteDescription(offer);
+    const answer = await pc2.createAnswer();
+    await pc2.setLocalDescription(answer);
+    await pc1.setRemoteDescription(answer);
+  }
+}
+
+function addChat(t) {
+  const d = document.createElement('div'); d.textContent = t;
+  document.getElementById('chatLog').appendChild(d);
+}
+
+document.getElementById('btnConnect').onclick = connect;
+document.getElementById('btnCall').onclick = startCamera;
+document.getElementById('btnReset').onclick = () => location.reload();
+document.getElementById('btnSend').onclick = () => {
+  const i = document.getElementById('msg');
+  addChat('Saya: ' + i.value);
+  dc1.send(i.value); // P2P! ga lewat server.
+  // loopback demo: pantulkan balik biar kerasa 2 arah? engga, cukup satu arah, P2 log di chatLog juga.
+  i.value = '';
+};
+log('Siap. Klik "Hubungkan". Lalu buka DevTools → chrome://webrtc-internals buat lihat grafik ICE/DTLS/RTP beneran.');
+</script>
+</body>
+</html>

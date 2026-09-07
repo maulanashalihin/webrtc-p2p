@@ -1,0 +1,12 @@
+{
+  "name": "webrtc-p2p-call",
+  "version": "1.0.0",
+  "description": "Video call + chat P2P 2 orang: WebRTC + WebSocket signaling (Bun, tanpa dependency)",
+  "scripts": {
+    "start": "bun server.ts",
+    "test:e2e": "node test/e2e.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}
