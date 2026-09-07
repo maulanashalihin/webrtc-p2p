@@ -46,6 +46,21 @@ TURN_HOST=IP_PUBLIK_MESIN TURN_USER=webrtc TURN_PASSWORD=GANTI_PASSWORD_ACAK bun
 
 Client otomatis ambil kredensial dari `/turn-cred`, coba jalur langsung dulu, lalu `ice-restart` via TURN kalau gagal. Tombol **📋 Debug** menyalin info kandidat (host/srflx = langsung, relay = via TURN).
 
+### Rotasi kredensial TURN
+
+Password dibaca segar tiap request ke `/turn-cred`, jadi rotasi tanpa restart signaling
+(call yang sedang via relay akan dinegosiasi ulang — putar di jam sepi):
+
+```bash
+./ops/rotate-turn.sh   # butuh sudo untuk /etc/turnserver.conf + systemctl
+```
+
+### Monitoring
+
+* `GET /metrics` → uptime, rooms, peers, joins, pesan signaling, penolakan (full/locked/rate-limit).
+* Log JSON per baris (`join`/`leave`/`lock`) — cocok untuk jq/Loki.
+* Rate-limit: 20 join/IP/menit; room `[a-z0-9-]{1,32}`; pesan signaling maks 64KB.
+
 ## Uji E2E (2 browser headless beneran)
 
 ```bash

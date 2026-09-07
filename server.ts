@@ -17,18 +17,20 @@ const rooms = new Map<string, Room>();
 const joinsByIp = new Map<string, { n: number; reset: number }>();
 const stats = { started: Date.now(), joins: 0, relayed: 0, rejected: 0, rateHits: 0 };
 
-// TURN opsional (tapi dianjurkan untuk NAT ketat). Env dulu, lalu file (untuk mesin sendiri).
-let TURN_PASS = process.env.TURN_PASSWORD ?? "";
-if (!TURN_PASS && process.env.TURN_PASSWORD_FILE) {
-  try {
-    TURN_PASS = (await Bun.file(process.env.TURN_PASSWORD_FILE).text()).trim();
-  } catch {}
-}
+// TURN opsional (tapi dianjurkan untuk NAT ketat).
+// Password dibaca segar tiap request: rotasi tanpa restart signaling.
 const TURN_HOST = process.env.TURN_HOST ?? "";
 const TURN_USER = process.env.TURN_USER ?? "webrtc";
-const TURN_URIS = TURN_HOST
-  ? [`turn:${TURN_HOST}:3478?transport=udp`, `turn:${TURN_HOST}:3478?transport=tcp`]
-  : [];
+const TURN_PASS_FILE = process.env.TURN_PASSWORD_FILE ?? "";
+async function turnPass(): Promise<string> {
+  if (process.env.TURN_PASSWORD) return process.env.TURN_PASSWORD;
+  if (!TURN_PASS_FILE) return "";
+  try {
+    return (await Bun.file(TURN_PASS_FILE).text()).trim();
+  } catch {
+    return "";
+  }
+}
 
 const log = (ev: string, d: Record<string, unknown> = {}) =>
   console.log(JSON.stringify({ t: new Date().toISOString(), ev, ...d }));
@@ -62,8 +64,13 @@ Bun.serve<WSD>({
       return new Response("websocket upgrade gagal", { status: 500 });
     }
     if (url.pathname === "/turn-cred") {
-      if (!TURN_PASS || !TURN_URIS.length) return new Response("turn off", { status: 503 });
-      return Response.json({ username: TURN_USER, password: TURN_PASS, uris: TURN_URIS });
+      const pass = await turnPass();
+      if (!pass || !TURN_HOST) return new Response("turn off", { status: 503 });
+      return Response.json({
+        username: TURN_USER,
+        password: pass,
+        uris: [`turn:${TURN_HOST}:3478?transport=udp`, `turn:${TURN_HOST}:3478?transport=tcp`],
+      });
     }
     if (url.pathname === "/metrics") {
       let peers = 0;
