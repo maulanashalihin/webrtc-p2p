@@ -33,7 +33,7 @@ const URL = process.env.E2E_URL || 'http://127.0.0.1:8090/';
 
   async function state(p) {
     return p.evaluate(() => ({
-      conn: pc.connectionState,
+      ok: pcs.size === 1 && [...pcs.values()].every((s) => s.pc.connectionState === 'connected'),
       status: document.getElementById('qtxt').textContent,
     }));
   }
@@ -41,7 +41,7 @@ const URL = process.env.E2E_URL || 'http://127.0.0.1:8090/';
   let ok = false;
   for (let i = 0; i < 30; i++) {
     const [sa, sb] = [await state(pa), await state(pb)];
-    if (sa.conn === 'connected' && sb.conn === 'connected') {
+    if (sa.ok && sb.ok) {
       ok = true;
       break;
     }
