@@ -3,127 +3,351 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WebRTC P2P — Video Call + Chat</title>
+<title>Ruang — Video Call P2P</title>
 <style>
-  body { font-family: system-ui, sans-serif; max-width: 860px; margin: 20px auto; padding: 0 16px; background: #111; color: #eee; }
-  button, input { font-family: inherit; padding: 9px 14px; font-size: 15px; }
-  button { cursor: pointer; }
+  :root { --bg:#101014; --panel:#1a1a21; --line:#2c2c38; --txt:#f0f0f5; --dim:#9a9ab0; --acc:#5b8cff; --ok:#3ddc84; --warn:#ffb020; --bad:#ff5d5d; }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; margin: 0; background: var(--bg); color: var(--txt); min-height: 100vh; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; }
+  h1 { font-size: 28px; margin: 8px 0 4px; }
+  .sub { color: var(--dim); margin: 0 0 20px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin: 14px 0; }
+  label { display: block; font-size: 13px; color: var(--dim); margin: 12px 0 4px; }
+  input, select { width: 100%; padding: 11px 13px; font-size: 16px; border-radius: 10px; border: 1px solid var(--line); background: #101016; color: var(--txt); font-family: inherit; }
+  button { font-family: inherit; font-size: 15px; padding: 11px 18px; border-radius: 10px; border: 1px solid var(--line); background: #262633; color: var(--txt); cursor: pointer; }
+  button.primary { background: var(--acc); border-color: var(--acc); color: #fff; font-weight: 600; }
+  button.danger { background: #3a1d1d; border-color: #6b2b2b; }
   button:disabled { opacity: .4; cursor: default; }
-  .videos { display: flex; gap: 10px; margin: 12px 0; }
-  video { width: 48%; aspect-ratio: 4/3; background: #222; border: 1px solid #444; border-radius: 8px; }
-  #status { padding: 8px 12px; background: #1c1c1c; border: 1px solid #333; border-radius: 8px; }
-  #chatLog { border: 1px solid #333; border-radius: 8px; height: 140px; overflow-y: auto; padding: 8px; margin: 8px 0; background: #000; }
-  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 8px 0; }
-  a { color: #7cf; }
-  small { color: #999; }
+  button.on { outline: 2px solid var(--acc); }
+  .row { display: flex; gap: 10px; margin: 12px 0; flex-wrap: wrap; }
+  .row > * { flex: 1 1 auto; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .chip { font-size: 13px; padding: 6px 12px; border-radius: 20px; background: #262633; border: 1px solid var(--line); cursor: pointer; }
+  /* call */
+  #topbar { display: flex; align-items: center; gap: 10px; padding: 10px 0; flex-wrap: wrap; }
+  #topbar .room { font-weight: 700; font-size: 18px; }
+  #qdot { width: 11px; height: 11px; border-radius: 50%; background: #666; display: inline-block; }
+  #qdot.ok { background: var(--ok); } #qdot.warn { background: var(--warn); } #qdot.bad { background: var(--bad); }
+  #qtxt { font-size: 13px; color: var(--dim); }
+  .spacer { flex: 1; }
+  .iconbtn { padding: 8px 12px; font-size: 14px; }
+  #stage { position: relative; display: flex; gap: 10px; }
+  #remote { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 14px; border: 1px solid var(--line); }
+  #local { position: absolute; right: 12px; bottom: 12px; width: 22%; max-width: 200px; aspect-ratio: 4/3; background: #000; border-radius: 10px; border: 2px solid var(--line); }
+  .vlabel { position: absolute; font-size: 12px; background: rgba(0,0,0,.6); padding: 3px 9px; border-radius: 8px; margin: 8px; }
+  #controls { display: flex; gap: 10px; justify-content: center; margin: 14px 0; flex-wrap: wrap; }
+  #controls button { min-width: 56px; font-size: 18px; }
+  #banner { display: none; padding: 10px 14px; border-radius: 10px; margin: 10px 0; font-size: 14px; }
+  #banner.show { display: block; }
+  #banner.warn { background: #33270e; border: 1px solid #6b5116; }
+  #banner.bad { background: #381414; border: 1px solid #6b2b2b; }
+  #chatLog { height: 180px; overflow-y: auto; background: #0a0a0e; border: 1px solid var(--line); border-radius: 10px; padding: 10px; margin-bottom: 8px; }
+  #chatLog .m { margin: 6px 0; font-size: 14px; }
+  #chatLog .m b { color: var(--acc); }
+  #chatLog .m time { color: var(--dim); font-size: 11px; margin-left: 6px; }
+  #chatLog .sys { color: var(--dim); font-style: italic; font-size: 13px; }
+  /* toasts + states */
+  #toasts { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 50; width: min(92vw, 420px); }
+  .toast { background: #262633; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-size: 14px; }
+  .statebox { text-align: center; padding: 40px 20px; }
+  .statebox .big { font-size: 44px; }
+  #preview { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 12px; }
+  #meter { height: 8px; background: #262633; border-radius: 5px; overflow: hidden; margin-top: 6px; }
+  #meter > div { height: 100%; width: 0%; background: var(--ok); }
+  details { color: var(--dim); font-size: 14px; margin-top: 14px; }
+  a { color: var(--acc); }
+  @media (max-width: 700px) {
+    #stage { flex-direction: column; }
+    #local { position: static; width: 100%; max-width: none; }
+    #chatPanel { position: fixed; inset: auto 0 0 0; z-index: 40; background: var(--panel); border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; padding: 12px 14px 20px; transform: translateY(105%); transition: transform .25s; }
+    #chatPanel.open { transform: none; }
+    #chatLog { height: 30vh; }
+    #controls { position: sticky; bottom: 0; background: var(--bg); padding: 10px 0; }
+  }
 </style>
 </head>
 <body>
-<h1>WebRTC P2P — 2 browser, tanpa lewat server*</h1>
-<p><small>*Server hanya untuk <b>signaling</b> (kenalan). Video + chat jalan langsung browser-ke-browser. Cara pakai: buka halaman ini di 2 browser (mis. Brave + Chrome), masuk room yang sama. Atau kirim link invite ke HP/laptop lain.</small></p>
+<div class="wrap">
 
-<div id="lobby">
-  <div class="row">
-    <input id="room" placeholder="nama-room" maxlength="32" style="flex:1">
-    <button id="btnRandom">🎲 Room acak</button>
+  <!-- LOBBY -->
+  <div id="screen-lobby">
+    <h1>Ruang 👥</h1>
+    <p class="sub">Video call peer-to-peer: tanpa akun, tanpa server media. Buka di 2 browser, masuk room yang sama.</p>
+    <div class="card">
+      <label>Nama kamu</label>
+      <input id="name" placeholder="mis. Budi" maxlength="24">
+      <label>Nama room (huruf, angka, strip)</label>
+      <input id="room" placeholder="mis. rapat-senin" maxlength="32">
+      <div class="chips" id="recent"></div>
+      <div class="row">
+        <button id="btnCam" class="primary">📹 Lanjut + kamera</button>
+        <button id="btnChat">💬 Chat saja</button>
+      </div>
+    </div>
+    <details><summary>Cara kerja (30 detik)</summary>
+      <p>Server hanya memperkenalkan dua browser (tukar SDP + ICE). Setelah terhubung, video &amp; chat mengalir langsung antar browser, terenkripsi. Server tidak bisa mengintip. <a href="/loopback.html">Mode belajar →</a></p>
+    </details>
   </div>
-  <div class="row">
-    <button id="btnCam">📹 Join + kamera</button>
-    <button id="btnChat">💬 Join chat saja</button>
+
+  <!-- PREJOIN -->
+  <div id="screen-prejoin" style="display:none">
+    <h1>Cek dulu 🎙️</h1>
+    <p class="sub" id="prejoinSub"></p>
+    <div class="card" id="prejoinMedia">
+      <video id="preview" autoplay muted playsinline></video>
+      <label>Kamera</label><select id="selCam"></select>
+      <label>Mic</label><select id="selMic"></select>
+      <div id="meter"><div></div></div>
+      <label>Speaker</label>
+      <div class="row"><select id="selSpk" style="flex:1"></select><button id="btnTestSpk" class="iconbtn">🔊 Tes</button></div>
+    </div>
+    <div class="row">
+      <button id="btnBack">← Kembali</button>
+      <button id="btnMasuk" class="primary">Masuk room →</button>
+    </div>
   </div>
+
+  <!-- CALL -->
+  <div id="screen-call" style="display:none">
+    <div id="topbar">
+      <span id="qdot"></span>
+      <span class="room" id="roomTitle"></span>
+      <span id="qtxt">menghubungkan…</span>
+      <span id="lockTag" style="font-size:13px"></span>
+      <span class="spacer"></span>
+      <button id="btnInvite" class="iconbtn">🔗 Invite</button>
+      <button id="btnLock" class="iconbtn" style="display:none">🔒 Kunci</button>
+      <button id="btnDebug" class="iconbtn">📋</button>
+      <button id="btnLeave" class="iconbtn danger">⏹</button>
+    </div>
+    <div id="banner"></div>
+    <div id="stage">
+      <video id="remote" autoplay playsinline></video>
+      <span class="vlabel" id="remoteLabel" style="left:0;top:0">menunggu…</span>
+      <video id="local" autoplay muted playsinline></video>
+    </div>
+    <div id="controls">
+      <button id="btnMuteMic" title="Mic">🎤</button>
+      <button id="btnMuteCam" title="Kamera">📷</button>
+      <button id="btnShare" title="Share screen">🖥️</button>
+      <button id="btnChatToggle" title="Chat">💬</button>
+    </div>
+    <div id="chatPanel">
+      <div id="chatLog"></div>
+      <div class="row" style="margin:0">
+        <input id="msg" placeholder="Tulis pesan…" disabled style="flex:1">
+        <button id="btnSend" disabled>Kirim</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FULL -->
+  <div id="screen-full" style="display:none">
+    <div class="card statebox">
+      <div class="big">🚪</div>
+      <h2>Room penuh</h2>
+      <p class="sub" id="fullText"></p>
+      <button id="btnFullNew" class="primary">Buat room lain</button>
+    </div>
+  </div>
+
+  <!-- LOCKED -->
+  <div id="screen-locked" style="display:none">
+    <div class="card statebox">
+      <div class="big">🔒</div>
+      <h2>Room dikunci</h2>
+      <p class="sub">Minta PIN ke pembuat room.</p>
+      <input id="pin" placeholder="PIN" maxlength="16" style="max-width:220px;margin:0 auto">
+      <div class="row" style="justify-content:center">
+        <button id="btnPinBack">← Kembali</button>
+        <button id="btnPinJoin" class="primary">Gabung →</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toasts"></div>
 </div>
-
-<div id="call" style="display:none">
-  <p id="status">menghubungkan…</p>
-  <div class="row">
-    <button id="btnInvite">🔗 Salin link invite</button>
-    <button id="btnMuteMic">🎤 Mic: on</button>
-    <button id="btnMuteCam">📷 Kamera: on</button>
-    <button id="btnLeave">⏹ Keluar</button>
-    <button id="btnDebug">📋 Debug</button>
-  </div>
-  <div class="videos">
-    <video id="local" autoplay muted playsinline></video>
-    <video id="remote" autoplay playsinline></video>
-  </div>
-  <div id="chatLog"></div>
-  <div class="row">
-    <input id="msg" placeholder="ketik pesan…" disabled style="flex:1">
-    <button id="btnSend" disabled>Kirim</button>
-  </div>
-</div>
-
-<p><small>Belajar konsepnya? <a href="/loopback.html">Mode belajar 1-halaman</a> (offer/answer/ICE step-by-step).</small></p>
 
 <script>
 const $ = id => document.getElementById(id);
-const statusEl = $('status'), chatLog = $('chatLog');
-const setStatus = t => statusEl.textContent = t;
-const addChat = t => { const d = document.createElement('div'); d.textContent = t; chatLog.appendChild(d); chatLog.scrollTop = 1e6; };
+const show = id => { for (const s of ['screen-lobby','screen-prejoin','screen-call','screen-full','screen-locked']) $(s).style.display = s === id ? '' : 'none'; };
+const toast = t => { const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; $('toasts').appendChild(d); setTimeout(() => d.remove(), 4000); };
+const banner = (t, cls) => { const b = $('banner'); b.textContent = t || ''; b.className = t ? 'show ' + (cls || '') : ''; };
+const sysChat = t => { const d = document.createElement('div'); d.className = 'sys'; d.textContent = t; $('chatLog').appendChild(d); };
+const timeNow = () => new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+function addChat(name, text, me) {
+  const d = document.createElement('div'); d.className = 'm';
+  const b = document.createElement('b'); b.textContent = me ? name + ' (kamu)' : name;
+  const tm = document.createElement('time'); tm.textContent = timeNow();
+  d.append(b, tm, document.createElement('br'), document.createTextNode(text));
+  $('chatLog').appendChild(d); $('chatLog').scrollTop = 1e6;
+}
 
-let ws, pc, dc, polite = true, makingOffer = false, withMedia = true, myRoom = '';
+let ws = null, pc = null, dc = null;
+let myId = '', myName = '', myRoom = '', myPin = '', initiator = false, polite = true;
+let makingOffer = false, withMedia = true, leaving = false, reconnectN = 0;
 let peerPresent = false, pendingIce = [];
-// Rantai operasi SDP: cegah setLocal/setRemote tumpang tindih saat offer tabrakan.
+let peers = new Map(); // id -> {name, mic, cam}
 let opChain = Promise.resolve();
 const sync = fn => { opChain = opChain.then(fn, fn); return opChain; };
+const send = m => { if (ws?.readyState === 1) ws.send(JSON.stringify(m)); };
 
+const rnd = () => Math.random().toString(36).slice(2, 8);
+const cleanRoom = s => (s || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 32);
+
+/* ---------- lobby ---------- */
+myName = localStorage.getItem('ruang-name') || '';
+$('name').value = myName;
+const startRoom = cleanRoom(location.hash.slice(1));
+$('room').value = startRoom || rnd();
+renderRecent();
+if (startRoom) { toast('Link invite ke room "' + startRoom + '" — isi nama, lalu lanjut.'); }
+
+function renderRecent() {
+  const box = $('recent'); box.innerHTML = '';
+  for (const r of JSON.parse(localStorage.getItem('ruang-recent') || '[]')) {
+    const c = document.createElement('span'); c.className = 'chip'; c.textContent = '#' + r;
+    c.onclick = () => $('room').value = r;
+    box.appendChild(c);
+  }
+}
+function rememberRoom(r) {
+  const l = [r, ...JSON.parse(localStorage.getItem('ruang-recent') || '[]').filter(x => x !== r)].slice(0, 5);
+  localStorage.setItem('ruang-recent', JSON.stringify(l));
+}
+
+$('btnCam').onclick = () => startPrejoin(true);
+$('btnChat').onclick = () => startPrejoin(false);
+function startPrejoin(media) {
+  myName = ($('name').value.trim() || 'Tamu').slice(0, 24);
+  localStorage.setItem('ruang-name', myName);
+  myRoom = cleanRoom($('room').value) || rnd();
+  if (!myRoom) { toast('Nama room hanya boleh huruf/angka/strip.'); return; }
+  rememberRoom(myRoom);
+  withMedia = media;
+  $('prejoinSub').textContent = 'Room "' + myRoom + '" sebagai ' + myName + (media ? '' : ' (tanpa kamera).');
+  $('prejoinMedia').style.display = media ? '' : 'none';
+  show('screen-prejoin');
+  if (media) setupPreview();
+}
+$('btnBack').onclick = () => { stopPreview(); show('screen-lobby'); };
+
+/* ---------- prejoin: devices ---------- */
+let previewStream = null, meterRAF = 0;
+async function setupPreview() {
+  stopPreview();
+  try {
+    previewStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+  } catch {
+    toast('Kamera/mic ditolak — lanjut mode chat saja.');
+    withMedia = false; $('prejoinMedia').style.display = 'none'; return;
+  }
+  $('preview').srcObject = previewStream;
+  const devs = await navigator.mediaDevices.enumerateDevices();
+  const fill = (id, kind, cur) => {
+    const s = $(id); s.innerHTML = '';
+    for (const d of devs.filter(x => x.kind === kind)) {
+      const o = document.createElement('option'); o.value = d.deviceId; o.textContent = d.label || kind;
+      s.appendChild(o);
+    }
+    if (cur) s.value = [...s.options].find(o => cur.includes(o.textContent))?.value ?? s.value;
+  };
+  const vt = previewStream.getVideoTracks()[0], at = previewStream.getAudioTracks()[0];
+  fill('selCam', 'videoinput', vt?.label); fill('selMic', 'audioinput', at?.label); fill('selSpk', 'audiooutput');
+  // meter mic
+  const ctx = new AudioContext(), src = ctx.createMediaStreamSource(new MediaStream([at]));
+  const an = ctx.createAnalyser(); an.fftSize = 256; src.connect(an);
+  const buf = new Uint8Array(an.frequencyBinCount);
+  const bar = $('meter').firstElementChild;
+  const tick = () => { an.getByteFrequencyData(buf); bar.style.width = Math.min(100, buf.reduce((a, b) => a + b, 0) / buf.length * 2) + '%'; meterRAF = requestAnimationFrame(tick); };
+  tick();
+  previewStream._ctx = ctx;
+}
+function stopPreview() {
+  cancelAnimationFrame(meterRAF);
+  previewStream?.getTracks().forEach(t => t.stop());
+  previewStream?._ctx?.close().catch(() => {});
+  previewStream = null;
+  $('preview').srcObject = null;
+}
+$('selCam').onchange = async e => {
+  const s = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: e.target.value } } });
+  const nt = s.getVideoTracks()[0], ot = previewStream.getVideoTracks()[0];
+  previewStream.removeTrack(ot); ot.stop(); previewStream.addTrack(nt);
+  $('preview').srcObject = previewStream;
+};
+$('selMic').onchange = async e => {
+  const s = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: e.target.value } } });
+  const nt = s.getAudioTracks()[0], ot = previewStream.getAudioTracks()[0];
+  previewStream.removeTrack(ot); ot.stop(); previewStream.addTrack(nt);
+};
+$('btnTestSpk').onclick = async () => {
+  try {
+    const ctx = new AudioContext(), o = ctx.createOscillator(), g = ctx.createGain();
+    const dest = ctx.createMediaStreamDestination(); o.connect(g); g.connect(dest); o.start(); g.gain.value = .2;
+    const el = new Audio(); el.srcObject = dest.stream;
+    if (el.setSinkId) await el.setSinkId($('selSpk').value);
+    await el.play(); setTimeout(() => { o.stop(); ctx.close(); }, 600);
+  } catch { toast('Speaker test gagal di browser ini.'); }
+};
+$('btnMasuk').onclick = () => {
+  const s = previewStream; stopPreviewKeep(s);
+  show('screen-call');
+  join(withMedia, s);
+};
+function stopPreviewKeep(s) { cancelAnimationFrame(meterRAF); s?._ctx?.close().catch(() => {}); }
+
+/* ---------- call engine (2 peer, protokol v2) ---------- */
 let iceRestarted = false;
 async function iceConfig() {
   const q = new URLSearchParams(location.search);
   const cfg = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
-  if (q.has('relay')) cfg.iceTransportPolicy = 'relay'; // paksa via TURN (untuk uji)
+  if (q.has('relay')) cfg.iceTransportPolicy = 'relay';
   if (q.has('noturn')) return cfg;
   try {
     const r = await fetch('/turn-cred', { cache: 'no-store' });
     if (!r.ok) throw 0;
     const { username, password, uris } = await r.json();
     cfg.iceServers.push({ urls: uris, username, credential: password });
-  } catch { addChat('⚠️ TURN tak terjangkau — coba jalur langsung dulu.'); }
+  } catch { sysChat('⚠️ TURN tak terjangkau — coba jalur langsung dulu.'); }
   return cfg;
 }
-const rnd = () => Math.random().toString(36).slice(2, 8);
-$('room').value = location.hash.slice(1) || rnd();
-$('btnRandom').onclick = () => $('room').value = rnd();
 
-function send(m) { if (ws?.readyState === 1) ws.send(JSON.stringify(m)); }
-
-async function join(media) {
-  withMedia = media;
-  myRoom = $('room').value.trim() || rnd();
-  history.replaceState(null, '', '#' + myRoom);
-  $('lobby').style.display = 'none';
-  $('call').style.display = 'block';
-  setStatus('⏳ menyambung ke signaling…');
+async function join(media, stream) {
+  leaving = false; reconnectN = 0; iceRestarted = false;
+  peers = new Map(); pendingIce = []; peerPresent = false;
+  $('roomTitle').textContent = '#' + myRoom;
+  $('remoteLabel').textContent = 'menunggu…';
+  setQ('…', '');
 
   pc = new RTCPeerConnection(await iceConfig());
   pc.onicecandidate = e => { if (e.candidate) send({ t: 'ice', c: e.candidate }); };
   pc.ontrack = e => { $('remote').srcObject = e.streams[0]; };
   pc.onconnectionstatechange = () => {
     const s = pc.connectionState;
-    if (s === 'connected') setStatus('🟢 P2P TERHUBUNG — video+chat langsung antar browser');
-    else if (s === 'connecting') setStatus('⏳ menegosiasi koneksi P2P…');
-    else if (s === 'disconnected') setStatus('🟡 koneksi P2P putus, mencoba lagi…');
+    if (s === 'connected') { setQ('terhubung', 'ok'); banner(''); }
+    else if (s === 'connecting') setQ('menegosiasi…', '');
+    else if (s === 'disconnected') setQ('putus, mencoba lagi…', 'warn');
     else if (s === 'failed') {
-      if (!iceRestarted) { iceRestarted = true; setStatus('🔄 jalur langsung buntu — mencoba via relay TURN…'); sync(iceRestart); }
-      else setStatus('🔴 gagal P2P bahkan via relay. Klik 📋 Debug, kirim hasilnya.');
+      if (!iceRestarted) { iceRestarted = true; setQ('coba via relay…', 'warn'); sync(iceRestart); }
+      else { setQ('gagal', 'bad'); banner('Gagal P2P bahkan via relay. Klik 📋 lalu kirim hasilnya.', 'bad'); }
     }
   };
   pc.ondatachannel = e => wireDC(e.channel);
 
   if (media) {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      $('local').srcObject = stream;
-      stream.getTracks().forEach(t => pc.addTrack(t, stream));
+      const st = stream ?? await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      $('local').srcObject = st;
+      st.getTracks().forEach(t => pc.addTrack(t, st));
+      localStream = st;
     } catch {
-      addChat('⚠️ kamera/mic ditolak — lanjut mode chat + terima video.');
-      withMedia = false;
+      sysChat('⚠️ kamera/mic bermasalah — lanjut terima video.');
     }
   }
 
-  // Siapa pun boleh offer; tabrakan dimenangkan yang tidak-sopan (initiator). Offer hanya jika lawan ada.
   pc.onnegotiationneeded = () => sync(async () => {
-    if (!peerPresent) return; // belum ada lawan: jangan offer ke ruang kosong
+    if (!peerPresent) return;
     try {
       makingOffer = true;
       await pc.setLocalDescription(await pc.createOffer());
@@ -132,26 +356,42 @@ async function join(media) {
     finally { makingOffer = false; }
   });
 
+  connectWS();
+}
+let localStream = null;
+
+function setQ(t, cls) { $('qtxt').textContent = t; $('qdot').className = cls; }
+
+function connectWS() {
   ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
-  ws.onopen = () => { setStatus('⏳ masuk room ' + myRoom + '…'); send({ t: 'join', room: myRoom }); };
-  ws.onclose = () => setStatus('🔴 signaling putus — reload untuk gabung lagi');
+  ws.onopen = () => { reconnectN = 0; banner(''); send({ t: 'join', room: myRoom, name: myName, pin: myPin }); };
+  ws.onclose = () => {
+    if (leaving) return;
+    peerPresent = false;
+    reconnectN++;
+    banner('Signaling putus — mencoba lagi (' + reconnectN + ')…', 'warn');
+    setTimeout(() => { if (!leaving) connectWS(); }, Math.min(5000, 500 * reconnectN));
+  };
   ws.onmessage = ev => sync(async () => {
     const m = JSON.parse(ev.data);
     if (m.t === 'joined') {
-      polite = !m.initiator; // yang masuk duluan = tidak-sopan (menang saat tabrakan offer)
-      peerPresent = m.peers >= 2;
-      if (m.initiator) {
-        dc = pc.createDataChannel('chat');
-        wireDC(dc);
-      }
-      setStatus(peerPresent ? '⏳ lawan sudah ada, menegosiasi…' : '⏳ menunggu lawan masuk room ' + myRoom + '…');
-      if (peerPresent) reofferSync(); // lawan sudah menunggu (termasuk kasus join ulang)
+      myId = m.you; initiator = m.initiator; polite = !m.initiator;
+      peers = new Map(m.peers.filter(p => p.id !== myId).map(p => [p.id, { name: p.name, mic: true, cam: true }]));
+      peerPresent = peers.size > 0;
+      $('btnLock').style.display = initiator ? '' : 'none';
+      if (initiator) { dc = pc.createDataChannel('chat'); wireDC(dc); }
+      if (peerPresent) { onPeerHere(); await reofferSync(); }
+      else sysChat('Menunggu lawan di #' + myRoom + '…');
     }
-    else if (m.t === 'peer-joined') { peerPresent = true; setStatus('⏳ lawan masuk, menegosiasi…'); reofferSync(); }
+    else if (m.t === 'peer-joined') {
+      peers.set(m.peer.id, { name: m.peer.name, mic: true, cam: true });
+      peerPresent = true; onPeerHere(); await reofferSync();
+      sysChat(m.peer.name + ' masuk 👋'); toast(m.peer.name + ' masuk');
+    }
     else if (m.t === 'offer') {
       peerPresent = true;
       const collision = makingOffer || pc.signalingState !== 'stable';
-      if (!polite && collision) return; // mengalah
+      if (!polite && collision) return;
       if (collision) await pc.setLocalDescription({ type: 'rollback' });
       await pc.setRemoteDescription(m.sdp);
       await flushIce();
@@ -160,12 +400,33 @@ async function join(media) {
     }
     else if (m.t === 'answer') { await pc.setRemoteDescription(m.sdp); await flushIce(); }
     else if (m.t === 'ice') {
-      if (!pc.remoteDescription) { pendingIce.push(m.c); return; } // offer belum diproses, tampung dulu
+      if (!pc.remoteDescription) { pendingIce.push(m.c); return; }
       try { await pc.addIceCandidate(m.c); } catch {}
     }
-    else if (m.t === 'peer-left') { peerPresent = false; setStatus('🟡 lawan keluar — link invite masih berlaku, suruh join lagi'); }
-    else if (m.t === 'full') { setStatus('🔴 room penuh (maks 2). Ganti nama room.'); ws.close(); }
+    else if (m.t === 'peer-left') {
+      peers.delete(m.peer.id); peerPresent = peers.size > 0;
+      $('remoteLabel').textContent = 'menunggu…';
+      sysChat((m.peer.name || 'Lawan') + ' keluar — link invite masih berlaku.');
+    }
+    else if (m.t === 'full') {
+      leaving = true; ws.close();
+      $('fullText').textContent = '#' + myRoom + ' sudah diisi ' + (m.peers || []).map(p => p.name).join(', ') + '.';
+      show('screen-full');
+    }
+    else if (m.t === 'locked') { leaving = true; ws.close(); show('screen-locked'); $('pin').focus(); }
+    else if (m.t === 'lock-state') {
+      $('lockTag').textContent = m.locked ? '🔒 terkunci' : '';
+      $('btnLock').textContent = m.locked ? '🔓 Buka' : '🔒 Kunci';
+      if (!initiator) sysChat(m.locked ? 'Room dikunci 🔒' : 'Room dibuka 🔓');
+    }
+    else if (m.t === 'rate-limited') { toast('Terlalu sering join — tunggu sebentar.'); }
+    else if (m.t === 'error') { toast('Room tidak valid.'); leaving = true; ws.close(); show('screen-lobby'); }
   });
+}
+
+function onPeerHere() {
+  const names = [...peers.values()].map(p => p.name);
+  $('remoteLabel').textContent = names.join(', ');
 }
 
 async function reofferSync() {
@@ -177,12 +438,6 @@ async function reofferSync() {
   } catch (e) { console.warn('reoffer', e); }
   finally { makingOffer = false; }
 }
-
-async function flushIce() {
-  if (!pc.remoteDescription || !pendingIce.length) return;
-  const q = pendingIce; pendingIce = [];
-  for (const c of q) { try { await pc.addIceCandidate(c); } catch {} }
-}
 async function iceRestart() {
   try {
     makingOffer = true;
@@ -191,42 +446,94 @@ async function iceRestart() {
   } catch (e) { console.warn('iceRestart', e); }
   finally { makingOffer = false; }
 }
+async function flushIce() {
+  if (!pc.remoteDescription || !pendingIce.length) return;
+  const q = pendingIce; pendingIce = [];
+  for (const c of q) { try { await pc.addIceCandidate(c); } catch {} }
+}
 
 function wireDC(ch) {
   dc = ch;
-  dc.onopen = () => { $('msg').disabled = false; $('btnSend').disabled = false; addChat('✅ chat P2P siap'); };
-  dc.onmessage = e => addChat('Lawan: ' + e.data);
+  dc.onopen = () => { $('msg').disabled = false; $('btnSend').disabled = false; sysChat('✅ chat P2P siap'); };
+  dc.onmessage = e => {
+    let m; try { m = JSON.parse(e.data); } catch { return; }
+    if (m.kind === 'chat') addChat(m.name, m.text);
+    else if (m.kind === 'media') {
+      const p = [...peers.values()][0];
+      if (p) { p.mic = m.mic; p.cam = m.cam; paintRemoteLabel(); }
+    }
+  };
   dc.onclose = () => { $('msg').disabled = true; $('btnSend').disabled = true; };
 }
+function sendDC(o) { if (dc?.readyState === 'open') dc.send(JSON.stringify(o)); }
+function paintRemoteLabel() {
+  const p = [...peers.values()][0];
+  $('remoteLabel').textContent = p ? p.name + (p.mic ? '' : ' 🔇') + (p.cam ? '' : ' 📷❌') : 'menunggu…';
+}
 
-$('btnCam').onclick = () => join(true);
-$('btnChat').onclick = () => join(false);
-$('btnSend').onclick = () => {
-  const i = $('msg');
-  if (!i.value || dc?.readyState !== 'open') return;
-  dc.send(i.value);
-  addChat('Saya: ' + i.value);
-  i.value = '';
-};
-$('msg').onkeydown = e => { if (e.key === 'Enter') $('btnSend').click(); };
+/* ---------- controls ---------- */
+function myMedia() {
+  const st = $('local').srcObject;
+  sendDC({ kind: 'media', mic: st?.getAudioTracks()[0]?.enabled ?? false, cam: st?.getVideoTracks()[0]?.enabled ?? false });
+}
 $('btnMuteMic').onclick = e => {
   const t = $('local').srcObject?.getAudioTracks()[0];
-  if (!t) return;
+  if (!t) return toast('Tidak ada mic.');
   t.enabled = !t.enabled;
-  e.target.textContent = '🎤 Mic: ' + (t.enabled ? 'on' : 'off');
+  e.target.classList.toggle('on', !t.enabled);
+  e.target.textContent = t.enabled ? '🎤' : '🔇';
+  myMedia();
 };
 $('btnMuteCam').onclick = e => {
   const t = $('local').srcObject?.getVideoTracks()[0];
-  if (!t) return;
+  if (!t) return toast('Tidak ada kamera.');
   t.enabled = !t.enabled;
-  e.target.textContent = '📷 Kamera: ' + (t.enabled ? 'on' : 'off');
+  e.target.classList.toggle('on', !t.enabled);
+  e.target.textContent = t.enabled ? '📷' : '📷❌';
+  myMedia();
 };
+$('btnShare').onclick = async e => {
+  const sender = pc?.getSenders().find(s => s.track?.kind === 'video');
+  if (!sender) return toast('Gabung dengan kamera dulu untuk share screen.');
+  if (e.target.classList.contains('on')) { stopShare(); return; }
+  try {
+    const st = await navigator.mediaDevices.getDisplayMedia({ video: true });
+    const track = st.getVideoTracks()[0];
+    window._camTrack = sender.track;
+    await sender.replaceTrack(track);
+    e.target.classList.add('on');
+    sendDC({ kind: 'share', on: true });
+    sysChat('🖥️ kamu share screen');
+    track.onended = () => stopShare();
+  } catch {}
+};
+async function stopShare() {
+  const sender = pc?.getSenders().find(s => s.track?.kind === 'video');
+  if (sender && window._camTrack) await sender.replaceTrack(window._camTrack);
+  $('btnShare').classList.remove('on');
+  sendDC({ kind: 'share', on: false });
+}
+$('btnChatToggle').onclick = () => $('chatPanel').classList.toggle('open');
+$('btnSend').onclick = () => {
+  const i = $('msg');
+  if (!i.value.trim() || dc?.readyState !== 'open') return;
+  sendDC({ kind: 'chat', name: myName, text: i.value.trim() });
+  addChat(myName, i.value.trim(), true);
+  i.value = '';
+};
+$('msg').onkeydown = e => { if (e.key === 'Enter') $('btnSend').click(); };
 $('btnInvite').onclick = async () => {
-  await navigator.clipboard.writeText(location.href).catch(() => prompt('Copy link ini:', location.href));
-  $('btnInvite').textContent = '✅ Link tersalin!';
-  setTimeout(() => $('btnInvite').textContent = '🔗 Salin link invite', 2000);
+  const link = location.origin + location.pathname + '#' + myRoom;
+  try { await navigator.clipboard.writeText(link); toast('✅ Link invite tersalin!'); }
+  catch { prompt('Copy link ini:', link); }
 };
-$('btnLeave').onclick = () => location.reload();
+$('btnLock').onclick = () => {
+  if ($('lockTag').textContent) { send({ t: 'unlock' }); }
+  else {
+    const pin = prompt('Buat PIN room (maks 16 karakter):', rnd());
+    if (pin) send({ t: 'lock', pin: pin.slice(0, 16) });
+  }
+};
 $('btnDebug').onclick = async () => {
   const info = { conn: pc.connectionState, ice: pc.iceConnectionState, sig: pc.signalingState, gathering: pc.iceGatheringState, candidates: [] };
   (await pc.getStats()).forEach(r => {
@@ -234,15 +541,42 @@ $('btnDebug').onclick = async () => {
     if (r.type === 'local-candidate') info.candidates.push({ local: r.candidateType + '/' + r.protocol + ' ' + r.address + ':' + r.port });
     if (r.type === 'remote-candidate') info.candidates.push({ remote: r.candidateType + '/' + r.protocol + ' ' + r.address + ':' + r.port });
   });
-  await navigator.clipboard.writeText(JSON.stringify(info, null, 1)).catch(() => prompt('Copy info debug:', JSON.stringify(info)));
-  addChat('📋 info debug tersalin — kirim ke admin.');
+  try { await navigator.clipboard.writeText(JSON.stringify(info, null, 1)); toast('📋 info debug tersalin'); }
+  catch { prompt('Copy info debug:', JSON.stringify(info)); }
 };
+$('btnLeave').onclick = () => {
+  leaving = true;
+  try { ws?.close(); pc?.close(); } catch {}
+  localStream?.getTracks().forEach(t => t.stop());
+  $('local').srcObject = null; $('remote').srcObject = null;
+  $('chatLog').innerHTML = ''; $('msg').value = '';
+  show('screen-lobby'); renderRecent();
+};
+$('btnFullNew').onclick = () => { $('room').value = rnd(); show('screen-lobby'); };
+$('btnPinBack').onclick = () => show('screen-lobby');
+$('btnPinJoin').onclick = () => { myPin = $('pin').value.trim().slice(0, 16); show('screen-call'); join(withMedia, null); };
 
-// Nyaman: kalau dibuka dari link invite langsung tanya kamera sekali, selebihnya otomatis.
-if (location.hash.slice(1)) {
-  if (confirm('Join room "' + location.hash.slice(1) + '" dengan kamera? (OK = kamera, Cancel = chat saja)')) join(true);
-  else join(false);
-}
+/* ---------- quality dot + jalur ---------- */
+setInterval(async () => {
+  if (!pc || pc.connectionState !== 'connected') return;
+  try {
+    const st = await pc.getStats();
+    let rtt = 0, lost = 0, pkts = 0, path = '';
+    st.forEach(r => {
+      if (r.type === 'candidate-pair' && (r.nominated || r.selected)) {
+        rtt = r.currentRoundTripTime ?? 0;
+        const L = st.get(r.localCandidateId), R = st.get(r.remoteCandidateId);
+        const lt = L?.candidateType, rt = R?.candidateType;
+        path = (lt === 'relay' || rt === 'relay') ? 'via relay' : 'langsung';
+      }
+      if (r.type === 'inbound-rtp' && r.kind === 'video' && !r.isRemote) { lost = r.packetsLost ?? 0; pkts = r.packetsReceived ?? 0; }
+    });
+    const loss = pkts ? lost / (lost + pkts) : 0;
+    if (loss > .08 || rtt > .6) setQ(`kurang baik • ${path}`, 'bad');
+    else if (loss > .02 || rtt > .25) setQ(`cukup • ${path}`, 'warn');
+    else setQ(`bagus • ${path}`, 'ok');
+  } catch {}
+}, 2000);
 </script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-// E2E: 2 browser headless join room yang sama -> P2P connected + chat nyampe.
+// E2E v2: lobby -> prejoin -> call, 2 browser, nama tampil di chat.
 const { chromium } = require('playwright');
 
 const URL = process.env.E2E_URL || 'http://127.0.0.1:8090/';
@@ -17,41 +17,38 @@ const URL = process.env.E2E_URL || 'http://127.0.0.1:8090/';
   const ctxB = await browser.newContext();
   const pa = await ctxA.newPage();
   const pb = await ctxB.newPage();
-  pa.on('console', (m) => console.log('[A]', m.text().slice(0, 160)));
-  pb.on('console', (m) => console.log('[B]', m.text().slice(0, 160)));
 
-  async function join(p, tag) {
+  async function join(p, name, cam) {
     await p.goto(URL, { waitUntil: 'domcontentloaded' });
+    await p.fill('#name', name);
     await p.fill('#room', room);
-    await p.click('#btnCam');
-    await p.waitForSelector('#call', { state: 'visible' });
-    console.log(tag, 'joined room', room);
+    await p.click(cam ? '#btnCam' : '#btnChat');
+    await p.waitForSelector('#screen-prejoin', { state: 'visible' });
+    await p.click('#btnMasuk');
+    await p.waitForSelector('#screen-call', { state: 'visible' });
   }
 
-  await join(pa, 'A');
-  await join(pb, 'B');
+  await join(pa, 'Ani', true);
+  await join(pb, 'Budi', true);
 
   async function state(p) {
     return p.evaluate(() => ({
       conn: pc.connectionState,
-      sig: pc.signalingState,
-      ice: pc.iceConnectionState,
-      status: document.getElementById('status').textContent,
+      status: document.getElementById('qtxt').textContent,
     }));
   }
 
   let ok = false;
   for (let i = 0; i < 30; i++) {
     const [sa, sb] = [await state(pa), await state(pb)];
-    if (i % 5 === 0) console.log('t=' + i + 's A=', JSON.stringify(sa), 'B=', JSON.stringify(sb));
     if (sa.conn === 'connected' && sb.conn === 'connected') {
       ok = true;
       break;
     }
     await new Promise((r) => setTimeout(r, 1000));
   }
-  console.log('A final:', JSON.stringify(await state(pa)));
-  console.log('B final:', JSON.stringify(await state(pb)));
+  console.log('A:', JSON.stringify(await state(pa)));
+  console.log('B:', JSON.stringify(await state(pb)));
   if (!ok) {
     await pa.screenshot({ path: '/tmp/e2e/fail-a.png' });
     await pb.screenshot({ path: '/tmp/e2e/fail-b.png' });
@@ -60,11 +57,11 @@ const URL = process.env.E2E_URL || 'http://127.0.0.1:8090/';
     process.exit(1);
   }
 
-  // Chat P2P A -> B
-  await pa.fill('#msg', 'halo dari A');
+  await pa.fill('#msg', 'halo dari Ani');
   await pa.click('#btnSend');
   await pb.waitForFunction(
-    () => document.getElementById('chatLog').textContent.includes('halo dari A'),
+    () => document.getElementById('chatLog').textContent.includes('Ani') &&
+         document.getElementById('chatLog').textContent.includes('halo dari Ani'),
     { timeout: 10000 },
   );
   console.log('E2E_CHAT_OK');
