@@ -6,7 +6,8 @@
     "start": "bun server.ts",
     "test:e2e": "node test/e2e.js",
     "test:mesh": "node test/mesh.js",
-    "test:proto": "node test/proto.js"
+    "test:proto": "node test/proto.js",
+    "test:ux": "node test/ux.js"
   },
   "devDependencies": {
     "playwright": "^1.63.0"
